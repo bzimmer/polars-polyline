@@ -1,0 +1,24 @@
+# Rust
+/target/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+*.pyd
+dist/
+*.egg-info/
+.venv/
+.pytest_cache/
+.coverage
+.ruff_cache/
+
+# maturin
+/target/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+.claude/

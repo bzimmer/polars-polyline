@@ -1,0 +1,24 @@
+[package]
+name = "polars_polyline"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "polars_polyline"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.28", features = ["extension-module"] }
+pyo3-polars = { version = "0.27", features = ["derive"] }
+polars-core = { version = "0.54", default-features = false, features = ["dtype-struct"] }
+polyline = "0.11"
+serde = { version = "1", features = ["derive"] }
+
+[dependencies.arrow]
+package = "polars-arrow"
+version = "0.54"
+
+[profile.release]
+lto           = "thin"
+codegen-units = 1
+strip         = "symbols"

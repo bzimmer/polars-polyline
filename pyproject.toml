@@ -1,0 +1,62 @@
+[build-system]
+requires = ["maturin>=1.0,<2"]
+build-backend = "maturin"
+
+[project]
+name = "polars-polyline"
+version = "0.1.0"
+description = "Fast polyline decoding for Polars"
+requires-python = ">=3.14"
+dependencies = [
+    "polars>=1.0",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+python-source = "python"
+module-name = "polars_polyline._polars_polyline"
+
+[dependency-groups]
+dev = [
+    "maturin>=1.0,<2",
+    "pytest>=8",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.13",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]
+
+[tool.ruff]
+
+[tool.ruff.format]
+indent-style = "space"
+line-ending  = "auto"
+quote-style  = "double"
+
+[tool.ruff.lint]
+extend-ignore = [
+  'ANN002', # missing type annotation for *args
+  'ANN003', # missing type annotation for **kwargs
+  'E501',   # line too long
+  'I',      # isort
+  'S602',   # subprocess shell=True
+  'S603',   # no untrusted subprocess input
+  'S607',   # starting a process with a partial executable path
+  'TC002',  # type-checking block ignores (third-party imports)
+  'TC003',  # type-checking block ignores (standard library imports)
+  'TRY003', # long messages outside the exception class
+]
+extend-select = [
+  'B',   # flake8-bugbear
+  'D419', # docstring-no-empty-return
+  'E',   # pycodestyle errors
+  'F',   # Pyflakes
+  'LOG',  # flake8-logging
+  'RUF',  # Ruff
+  'W',   # pycodestyle warnings
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["D100"]
+"**/tests/*" = ["ANN001", "ANN201", "D100", "D101", "D102", "D103"]

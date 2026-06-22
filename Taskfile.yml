@@ -1,0 +1,80 @@
+version: "3"
+
+vars:
+  VENV_PYTHON: "{{.TASKFILE_DIR}}/.venv/bin/python"
+
+tasks:
+  default:
+    cmds:
+      - task -l --sort alphanumeric
+
+  clean:
+    desc: Remove build artifacts (Rust target/ and Python cache files)
+    preconditions:
+      - sh: command -v fd
+        msg: "'fd' is required (https://github.com/sharkdp/fd)."
+    cmds:
+      - cargo clean
+      - fd -t d -H '__pycache__|\.egg-info$|\.pytest_cache' -x rm -rf
+
+  _deps:
+    internal: true
+    sources:
+      - pyproject.toml
+      - uv.lock
+    cmds:
+      - uv sync --no-install-project
+
+  build:
+    desc: Compile the Rust extension and install it into the venv
+    deps: [_deps]
+    cmds:
+      - uv run --no-sync maturin develop
+
+  fmt:
+    desc: Format Python (ruff) and Rust (cargo fmt) source
+    deps: [_deps]
+    cmds:
+      - uv run --no-sync ruff format .
+      - uv run --no-sync ruff check --select I --fix .
+      - cargo fmt
+
+  install:
+    desc: Build a release wheel and install it into the current venv
+    deps: [release]
+    cmds:
+      - uv pip install target/wheels/polars_polyline-*.whl --force-reinstall
+
+  lint:
+    desc: Lint Python (ruff) and Rust (cargo clippy) source
+    deps: [_deps]
+    cmds:
+      - uv run --no-sync ruff format --check .
+      - uv run --no-sync ruff check .
+      - cargo clippy -- -D warnings
+
+  release:
+    desc: Build a release wheel into target/wheels/
+    deps: [test]
+    cmds:
+      - uv run --no-sync maturin build --release
+
+  tag:
+    desc: Bump version, commit, and create a git tag (e.g. task tag VERSION=0.1.0)
+    requires:
+      vars: [VERSION]
+    cmds:
+      - uv version {{.VERSION}}
+      - sed -i '' 's/^version = "[^"]*"/version = "{{.VERSION}}"/' Cargo.toml
+      - cargo update --package polars_polyline
+      - git add pyproject.toml Cargo.toml Cargo.lock uv.lock
+      - git diff --cached --quiet || git commit -m "release v{{.VERSION}}"
+      - git tag v{{.VERSION}}
+      - git push origin v{{.VERSION}}
+
+  test:
+    desc: Run Rust unit tests and Python pytest suite
+    deps: [build]
+    cmds:
+      - PYO3_PYTHON={{.VENV_PYTHON}} cargo test
+      - uv run --no-sync pytest -v --cov=polars_polyline --cov-report=term-missing
