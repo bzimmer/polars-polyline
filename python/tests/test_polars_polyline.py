@@ -44,9 +44,9 @@ def test_invalid_string():
 def test_mixed_series():
     """Test series with mix of valid, null, and invalid entries."""
     valid_polyline = "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
-    df = pl.DataFrame({
-        "encoded": [valid_polyline, None, "!!INVALID!!", valid_polyline]
-    })
+    df = pl.DataFrame(
+        {"encoded": [valid_polyline, None, "!!INVALID!!", valid_polyline]}
+    )
     result = df.select(pp.decode_polyline("encoded")).to_series()
 
     # First should be valid

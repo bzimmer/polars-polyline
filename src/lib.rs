@@ -90,7 +90,11 @@ fn polars_decode_polyline(inputs: &[Series], kwargs: DecodePolylineKwargs) -> Po
     let list_dtype = LargeListArray::default_datatype(struct_dtype);
     let offsets_buf = OffsetsBuffer::<i64>::try_from(offsets)
         .map_err(|e| polars_err!(InvalidOperation: "invalid offsets: {}", e))?;
-    let row_validity: Option<Bitmap> = if any_null { Some(validity.into()) } else { None };
+    let row_validity: Option<Bitmap> = if any_null {
+        Some(validity.into())
+    } else {
+        None
+    };
 
     let list_arr = LargeListArray::new(
         list_dtype,
