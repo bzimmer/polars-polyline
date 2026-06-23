@@ -2,7 +2,7 @@
 
 Fast polyline decoding for Polars, powered by Rust and the `polyline` crate.
 
-Decode GeoRust polyline-encoded strings into lists of (lat, lng) coordinate pairs directly within Polars queries. Implemented as a native Polars expression plugin with zero-copy coordinate passing.
+Decode polyline-encoded strings into lists of `{lng, lat}` coordinate structs directly within Polars queries. Coordinate order follows the `polyline` crate convention — **longitude first, latitude second** — matching `geo_types::Coord { x: lng, y: lat }` and GeoJSON. Implemented as a native Polars expression plugin with zero-copy coordinate passing.
 
 ## Installation
 
@@ -46,7 +46,7 @@ shape: (1, 2)
 │ ---                      ┆ ---                              │
 │ str                      ┆ list[struct[2]]                  │
 ╞══════════════════════════╪══════════════════════════════════╡
-│ _p~iF~ps|U_ulLnnqC_mqNv… ┆ [{38.5, -120.2}, {40.7, -12…     │
+│ _p~iF~ps|U_ulLnnqC_mqNv… ┆ [{-120.2, 38.5}, {-120.95, …     │
 └──────────────────────────┴──────────────────────────────────┘
 ```
 
@@ -81,15 +81,15 @@ result = df.with_columns(
 
 ### Working with Decoded Coordinates
 
-Decoded coordinates are returned as `List(Struct { lat: Float64, lng: Float64 })`. Access fields using Polars struct operations:
+Decoded coordinates are returned as `List(Struct { lng: Float64, lat: Float64 })` — **longitude first, latitude second**. Access fields by name using Polars struct operations:
 
 ```python
 result = df.with_columns(
     coords=pp.decode_polyline("encoded")
 ).with_columns(
     num_points=pl.col("coords").list.len(),
-    first_lat=pl.col("coords").list.first()["lat"],
     first_lng=pl.col("coords").list.first()["lng"],
+    first_lat=pl.col("coords").list.first()["lat"],
 )
 ```
 

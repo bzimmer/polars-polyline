@@ -14,7 +14,7 @@ Before writing any code, study the repository at **https://github.com/bzimmer/po
 
 3. **Input:** A Polars `String` series containing encoded polyline strings.
 
-4. **Output:** A `List(Struct { lat: Float64, lng: Float64 })` series — one list of structs per row, each struct representing a decoded coordinate pair with fields `lat` and `lng` in that order.
+4. **Output:** A `List(Struct { lng: Float64, lat: Float64 })` series — one list of structs per row, each struct representing a decoded coordinate pair. Field order is **longitude first, latitude second**, following the `polyline` crate's `geo_types::Coord { x: lng, y: lat }` convention and GeoJSON `[longitude, latitude]` ordering.
 
 5. **Null handling:** Emit a null for any row where the input is null or decoding fails; never panic.
 
@@ -25,7 +25,7 @@ Before writing any code, study the repository at **https://github.com/bzimmer/po
    - Propagate nulls correctly via `into_iter()` / `map()` / `collect_ca` patterns
    - Use `SpecialEq` and `FunctionOptions` flags correctly (`allow_rename`, `collect_groups`, etc.)
    - Match the `polars` version pinned in `polars-country`; do not introduce version skew
-   - Enable `abi3` / `extension-module` features as the template does
+   - Do NOT add `features = ["extension-module"]` to the `pyo3` dependency — that feature is deprecated in pyo3 0.28+; maturin >= 1.9.4 sets `PYO3_BUILD_EXTENSION_MODULE` automatically
 
 8. **Zero-copy / allocation discipline in the hot path:**
    - Pass `&str` slices directly into `polyline::decode` — do not call `.to_string()` or `.to_owned()` on the input before decoding
@@ -43,7 +43,7 @@ Before writing any code, study the repository at **https://github.com/bzimmer/po
 
 10. **Tests:** Add pytest tests that cover:
 
-    - **Canonical 3-point round-trip:** Decode `"_p~iF~ps|U_ulLnnqC_mqNvxq`@"` at precision 5 and assert decoded lat/lng matches `[(38.5, -120.2), (40.7, -120.95), (43.252, -126.453)]` within `1e-5`.
+    - **Canonical 3-point round-trip:** Decode `"_p~iF~ps|U_ulLnnqC_mqNvxq`@"` at precision 5 and assert decoded `(lng, lat)` matches `[(-120.2, 38.5), (-120.95, 40.7), (-126.453, 43.252)]` within `1e-5`. Note: lng (x) first, lat (y) second.
 
     - **Null input:** A null cell in the input series produces a null in the output; no exception raised.
 
@@ -51,7 +51,7 @@ Before writing any code, study the repository at **https://github.com/bzimmer/po
 
     - **Long real-world polyline:** Fetch the GPX track for the **Strava segment "Col de la Forclaz"** (or any publicly available cycling climb GPX with ≥ 100 trackpoints), encode it to a precision-5 polyline using the `polyline` Python package, store the encoded string as a fixture in `tests/fixtures/forclaz.txt`, decode it with `decode_polyline`, and assert:
       - The number of decoded points matches the number of input trackpoints (within any simplification tolerance applied during encoding)
-      - The first and last decoded `(lat, lng)` match the first and last trackpoints within `1e-4`
+      - The first and last decoded `(lng, lat)` match the first and last trackpoints within `1e-4`
       - All decoded `lat` values fall within `[45.0, 47.0]` and all `lng` values within `[6.0, 8.0]` (Swiss Alps bounding box sanity check)
 
     - **Mixed series:** A series of `[valid_polyline, null, invalid, valid_polyline]` produces exactly 4 rows with non-null / null / null / non-null results respectively, and the two non-null rows have the correct point counts.

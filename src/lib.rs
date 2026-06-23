@@ -12,19 +12,20 @@ struct DecodePolylineKwargs {
     precision: u32,
 }
 
+// Returns (lng, lat) pairs following the polyline crate's Coord { x: lng, y: lat } convention.
 fn decode_polyline_coords(encoded: &str, precision: u32) -> PolarsResult<Vec<(f64, f64)>> {
     if encoded.is_empty() {
         return Err(polars_err!(InvalidOperation: "empty polyline string"));
     }
     polyline::decode_polyline(encoded, precision)
-        .map(|ls| ls.0.into_iter().map(|c| (c.y, c.x)).collect())
+        .map(|ls| ls.0.into_iter().map(|c| (c.x, c.y)).collect())
         .map_err(|e| polars_err!(InvalidOperation: "polyline decode error: {}", e))
 }
 
 fn output_type_decode_polyline(_: &[Field]) -> PolarsResult<Field> {
     let fields = vec![
-        Field::new("lat".into(), DataType::Float64),
         Field::new("lng".into(), DataType::Float64),
+        Field::new("lat".into(), DataType::Float64),
     ];
     Ok(Field::new(
         "coords".into(),
@@ -38,8 +39,8 @@ fn polars_decode_polyline(inputs: &[Series], kwargs: DecodePolylineKwargs) -> Po
     let precision = kwargs.precision;
     let n = str_ca.len();
 
-    let mut all_lats: Vec<f64> = Vec::new();
     let mut all_lngs: Vec<f64> = Vec::new();
+    let mut all_lats: Vec<f64> = Vec::new();
     let mut offsets: Vec<i64> = Vec::with_capacity(n + 1);
     let mut validity = MutableBitmap::with_capacity(n);
     let mut any_null = false;
@@ -50,9 +51,9 @@ fn polars_decode_polyline(inputs: &[Series], kwargs: DecodePolylineKwargs) -> Po
         match opt_str {
             Some(s) => match decode_polyline_coords(s, precision) {
                 Ok(coords) => {
-                    for (lat, lng) in coords {
-                        all_lats.push(lat);
+                    for (lng, lat) in coords {
                         all_lngs.push(lng);
+                        all_lats.push(lat);
                     }
                     validity.push(true);
                 }
@@ -66,23 +67,23 @@ fn polars_decode_polyline(inputs: &[Series], kwargs: DecodePolylineKwargs) -> Po
                 any_null = true;
             }
         }
-        offsets.push(all_lats.len() as i64);
+        offsets.push(all_lngs.len() as i64);
     }
 
-    let n_coords = all_lats.len();
-    let lat_arr = PrimitiveArray::<f64>::from_vec(all_lats);
+    let n_coords = all_lngs.len();
     let lng_arr = PrimitiveArray::<f64>::from_vec(all_lngs);
+    let lat_arr = PrimitiveArray::<f64>::from_vec(all_lats);
 
     let struct_dtype = ArrowDataType::Struct(vec![
-        ArrowField::new("lat".into(), ArrowDataType::Float64, false),
         ArrowField::new("lng".into(), ArrowDataType::Float64, false),
+        ArrowField::new("lat".into(), ArrowDataType::Float64, false),
     ]);
     let struct_arr = StructArray::new(
         struct_dtype.clone(),
         n_coords,
         vec![
-            Box::new(lat_arr) as Box<dyn Array>,
             Box::new(lng_arr) as Box<dyn Array>,
+            Box::new(lat_arr) as Box<dyn Array>,
         ],
         None,
     );
@@ -125,13 +126,14 @@ mod tests {
         let coords = coords.unwrap();
         assert_eq!(coords.len(), 3);
 
+        // Tuples are (lng, lat) — longitude first, latitude second.
         let tolerance = 1e-5;
-        assert!((coords[0].0 - 38.5).abs() < tolerance);
-        assert!((coords[0].1 - (-120.2)).abs() < tolerance);
-        assert!((coords[1].0 - 40.7).abs() < tolerance);
-        assert!((coords[1].1 - (-120.95)).abs() < tolerance);
-        assert!((coords[2].0 - 43.252).abs() < tolerance);
-        assert!((coords[2].1 - (-126.453)).abs() < tolerance);
+        assert!((coords[0].0 - (-120.2)).abs() < tolerance);
+        assert!((coords[0].1 - 38.5).abs() < tolerance);
+        assert!((coords[1].0 - (-120.95)).abs() < tolerance);
+        assert!((coords[1].1 - 40.7).abs() < tolerance);
+        assert!((coords[2].0 - (-126.453)).abs() < tolerance);
+        assert!((coords[2].1 - 43.252).abs() < tolerance);
     }
 
     #[test]

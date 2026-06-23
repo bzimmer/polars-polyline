@@ -2,7 +2,9 @@
 Polars expression helper for polyline decoding.
 
 Wraps the ``_polars_polyline`` native extension and exposes a ``decode_polyline``
-expression that plugs into any Polars query.
+expression that plugs into any Polars query. Decoded coordinates follow the
+``polyline`` crate convention: longitude first, latitude second
+(``Struct { lng: Float64, lat: Float64 }``).
 
     import polars as pl
     import polars_polyline as pp
@@ -26,7 +28,9 @@ _LIB = Path(__file__).parent
 def decode_polyline(expr: str | pl.Expr | pl.Series, precision: int = 5) -> pl.Expr:
     """Return a Polars expression decoding polyline strings to coordinate lists.
 
-    Decodes GeoRust polyline-encoded strings into lists of (lat, lng) struct pairs.
+    Decodes polyline-encoded strings into lists of ``{lng, lat}`` struct pairs.
+    Coordinate order follows the ``polyline`` crate convention: longitude first,
+    latitude second — matching ``geo_types::Coord { x: lng, y: lat }`` and GeoJSON.
     Implemented as a native Polars expression plugin: Arrow buffers are passed
     directly to Rust with no Python-level materialisation.
 
@@ -42,7 +46,8 @@ def decode_polyline(expr: str | pl.Expr | pl.Series, precision: int = 5) -> pl.E
     Returns
     -------
     pl.Expr
-        A lazy expression of dtype ``List(Struct { lat: Float64, lng: Float64 })``.
+        A lazy expression of dtype ``List(Struct { lng: Float64, lat: Float64 })``.
+        Fields are ordered ``lng`` then ``lat`` (longitude first).
 
     Examples
     --------
@@ -53,13 +58,13 @@ def decode_polyline(expr: str | pl.Expr | pl.Series, precision: int = 5) -> pl.E
     ... )
     >>> df.with_columns(coords=pp.decode_polyline("encoded"))
     shape: (1, 2)
-    ┌──────────────────────────┬────────────────────────────────────┐
-    │ encoded                  ┆ coords                             │
-    │ ---                      ┆ ---                                │
-    │ str                      ┆ list[struct[2]]                    │
-    ╞══════════════════════════╪════════════════════════════════════╡
-    │ _p~iF~ps|U_ulLnnqC_mqNv… ┆ [struct({38.5, -120.2}),...] │
-    └──────────────────────────┴────────────────────────────────────┘
+    ┌──────────────────────────┬──────────────────────────────────────┐
+    │ encoded                  ┆ coords                               │
+    │ ---                      ┆ ---                                  │
+    │ str                      ┆ list[struct[2]]                      │
+    ╞══════════════════════════╪══════════════════════════════════════╡
+    │ _p~iF~ps|U_ulLnnqC_mqNv… ┆ [struct({-120.2, 38.5}),...] │
+    └──────────────────────────┴──────────────────────────────────────┘
     """
     if isinstance(expr, str):
         expr_polyline = pl.col(expr)

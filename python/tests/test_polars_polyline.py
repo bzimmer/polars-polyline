@@ -12,17 +12,15 @@ def test_canonical_polyline():
     coords = result[0]
     assert len(coords) == 3
 
-    # Check first coordinate
-    assert abs(coords[0]["lat"] - 38.5) < 1e-5
+    # Struct fields are {lng, lat} — longitude first, latitude second.
     assert abs(coords[0]["lng"] - (-120.2)) < 1e-5
+    assert abs(coords[0]["lat"] - 38.5) < 1e-5
 
-    # Check second coordinate
-    assert abs(coords[1]["lat"] - 40.7) < 1e-5
     assert abs(coords[1]["lng"] - (-120.95)) < 1e-5
+    assert abs(coords[1]["lat"] - 40.7) < 1e-5
 
-    # Check third coordinate
-    assert abs(coords[2]["lat"] - 43.252) < 1e-5
     assert abs(coords[2]["lng"] - (-126.453)) < 1e-5
+    assert abs(coords[2]["lat"] - 43.252) < 1e-5
 
 
 def test_null_input():
@@ -88,7 +86,7 @@ def test_precision_6():
 
 
 def test_output_structure():
-    """Test that output has correct structure (lat, lng fields)."""
+    """Test that output has correct structure: {lng, lat} fields, longitude first."""
     encoded = "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
     df = pl.DataFrame({"encoded": [encoded]})
     result = df.select(pp.decode_polyline("encoded")).to_series()
@@ -96,12 +94,16 @@ def test_output_structure():
     coords = result[0]
     assert len(coords) > 0
 
-    # Check that struct has lat and lng fields
     first_coord = coords[0]
-    assert "lat" in first_coord
     assert "lng" in first_coord
-    assert isinstance(first_coord["lat"], float)
+    assert "lat" in first_coord
     assert isinstance(first_coord["lng"], float)
+    assert isinstance(first_coord["lat"], float)
+
+    # Verify field order: lng is first, lat is second.
+    dtype = result.dtype.inner.fields
+    assert dtype[0].name == "lng"
+    assert dtype[1].name == "lat"
 
 
 def test_empty_polyline_returns_null():
