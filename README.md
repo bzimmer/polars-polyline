@@ -1,8 +1,8 @@
 # polars-polyline
 
-Fast polyline decoding for Polars, powered by Rust and the `polyline` crate.
+Fast polyline decoding for Polars, powered by Rust and the [`polyline`](https://crates.io/crates/polyline) crate.
 
-Decode polyline-encoded strings into lists of `{lng, lat}` coordinate structs directly within Polars queries. Coordinate order follows the `polyline` crate convention — **longitude first, latitude second** — matching `geo_types::Coord { x: lng, y: lat }` and GeoJSON. Implemented as a native Polars expression plugin with zero-copy coordinate passing.
+Decode polyline-encoded strings into lists of `{lng, lat}` coordinate structs directly within Polars queries. Coordinate order follows the [`polyline`](https://crates.io/crates/polyline) crate convention — **longitude first, latitude second** — matching `geo_types::Coord { x: lng, y: lat }` and GeoJSON. Implemented as a native Polars expression plugin with zero-copy coordinate passing.
 
 ## Installation
 
@@ -135,7 +135,7 @@ Wheels are created in `target/wheels/`.
 ## Performance
 
 - **Zero-copy**: Polyline strings are passed directly to Rust; no intermediate Python allocations.
-- **Native Rust**: Uses the `polyline` crate for fast, correct decoding.
+- **Native Rust**: Uses the [`polyline`](https://crates.io/crates/polyline) crate for fast, correct decoding.
 - **Expression plugin**: Integrates seamlessly with Polars' lazy evaluation and optimization.
 
 ## Requirements

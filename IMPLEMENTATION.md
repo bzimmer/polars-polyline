@@ -10,7 +10,7 @@ A Polars expression plugin that decodes polyline-encoded strings into coordinate
 
 Output follows the `polyline` crate's `geo_types::Coord { x: lng, y: lat }` convention: **longitude first, latitude second**.
 
-- Rust: `decode` returns `Vec<(f64, f64)>` where `.0 = lng`, `.1 = lat`
+- Rust: `decode_into` pushes `(c.x = lng, c.y = lat)` directly into caller-supplied buffers
 - Arrow struct field order: `{ lng: Float64, lat: Float64 }`
 - Polars dtype: `List(Struct { lng: Float64, lat: Float64 })`
 
@@ -69,6 +69,22 @@ version = "0.54"
 ```
 
 `dtype-struct` feature is required on `polars-core` for `DataType::Struct`.
+
+---
+
+## Performance optimizations
+
+### No intermediate coordinate Vec (`decode_into`)
+
+The original `decode` helper returned `Vec<(f64, f64)>` — a heap allocation per row — which was immediately consumed to split into two flat vecs. Replaced with `decode_into(encoded, precision, &mut lngs, &mut lats) -> PolarsResult<usize>` that pushes `c.x`/`c.y` directly into the caller's output buffers, eliminating N transient allocations for N rows.
+
+### Capacity pre-allocation for coordinate buffers
+
+`all_lngs` and `all_lats` now start as `Vec::with_capacity(n)` instead of `Vec::new()`, providing a lower-bound capacity of one coordinate per row and reducing reallocation churn on large inputs.
+
+### Cached Arrow struct dtype (`OnceLock`)
+
+`ArrowDataType::Struct([lng: Float64, lat: Float64])` was reconstructed (vec allocation + field name conversions) on every expression evaluation. It is now stored in a `static OnceLock<ArrowDataType>` and accessed via `struct_dtype() -> &'static ArrowDataType`. Callers clone it explicitly at the two use-sites (`StructArray::new` and `LargeListArray::default_datatype`), making the cost visible and the construction cost amortised across the process lifetime.
 
 ---
 
