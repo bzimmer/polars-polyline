@@ -13,7 +13,7 @@ struct DecodePolylineKwargs {
 }
 
 // Returns (lng, lat) pairs following the polyline crate's Coord { x: lng, y: lat } convention.
-fn decode_polyline_coords(encoded: &str, precision: u32) -> PolarsResult<Vec<(f64, f64)>> {
+fn decode(encoded: &str, precision: u32) -> PolarsResult<Vec<(f64, f64)>> {
     if encoded.is_empty() {
         return Err(polars_err!(InvalidOperation: "empty polyline string"));
     }
@@ -22,7 +22,7 @@ fn decode_polyline_coords(encoded: &str, precision: u32) -> PolarsResult<Vec<(f6
         .map_err(|e| polars_err!(InvalidOperation: "polyline decode error: {}", e))
 }
 
-fn output_type_decode_polyline(_: &[Field]) -> PolarsResult<Field> {
+fn output_type_decode(_: &[Field]) -> PolarsResult<Field> {
     let fields = vec![
         Field::new("lng".into(), DataType::Float64),
         Field::new("lat".into(), DataType::Float64),
@@ -33,8 +33,8 @@ fn output_type_decode_polyline(_: &[Field]) -> PolarsResult<Field> {
     ))
 }
 
-#[polars_expr(output_type_func = output_type_decode_polyline)]
-fn polars_decode_polyline(inputs: &[Series], kwargs: DecodePolylineKwargs) -> PolarsResult<Series> {
+#[polars_expr(output_type_func = output_type_decode)]
+fn polars_decode(inputs: &[Series], kwargs: DecodePolylineKwargs) -> PolarsResult<Series> {
     let str_ca = inputs[0].str()?;
     let precision = kwargs.precision;
     let n = str_ca.len();
@@ -49,7 +49,7 @@ fn polars_decode_polyline(inputs: &[Series], kwargs: DecodePolylineKwargs) -> Po
 
     for opt_str in str_ca.iter() {
         match opt_str {
-            Some(s) => match decode_polyline_coords(s, precision) {
+            Some(s) => match decode(s, precision) {
                 Ok(coords) => {
                     for (lng, lat) in coords {
                         all_lngs.push(lng);
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn canonical_polyline_decoding() {
         let encoded = "_p~iF~ps|U_ulLnnqC_mqNvxq`@";
-        let coords = decode_polyline_coords(encoded, 5);
+        let coords = decode(encoded, 5);
         assert!(coords.is_ok());
 
         let coords = coords.unwrap();
@@ -138,20 +138,20 @@ mod tests {
 
     #[test]
     fn empty_string_returns_err() {
-        let result = decode_polyline_coords("", 5);
+        let result = decode("", 5);
         assert!(result.is_err());
     }
 
     #[test]
     fn invalid_polyline_returns_err() {
-        let result = decode_polyline_coords("!!INVALID!!", 5);
+        let result = decode("!!INVALID!!", 5);
         assert!(result.is_err());
     }
 
     #[test]
     fn precision_6_decoding() {
         let encoded = "_p~iF~ps|U";
-        let coords = decode_polyline_coords(encoded, 6);
+        let coords = decode(encoded, 6);
         assert!(coords.is_ok());
         let coords = coords.unwrap();
         assert!(!coords.is_empty());

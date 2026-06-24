@@ -10,7 +10,7 @@ Before writing any code, study the repository at **https://github.com/bzimmer/po
 
 1. **Crate:** Add `polyline` as a dependency in `Cargo.toml`, following the same dependency structure as `polars-country`.
 
-2. **Expression:** `decode_polyline(precision: u32)` — accepts an optional precision argument (default `5`, matching the standard Google/OSRM encoding). Follow the exact plugin registration pattern from `polars-country`, including `#[pyo3_polars::derive::polars_expr]`, output type inference functions, and `kwargs` passing.
+2. **Expression:** `decode(precision: u32)` — accepts an optional precision argument (default `5`, matching the standard Google/OSRM encoding). Follow the exact plugin registration pattern from `polars-country`, including `#[pyo3_polars::derive::polars_expr]`, output type inference functions, and `kwargs` passing.
 
 3. **Input:** A Polars `String` series containing encoded polyline strings.
 
@@ -18,7 +18,7 @@ Before writing any code, study the repository at **https://github.com/bzimmer/po
 
 5. **Null handling:** Emit a null for any row where the input is null or decoding fails; never panic.
 
-6. **Python side:** Register as `decode_polyline(expr, precision=5)` in the plugin's Python module, matching `polars-country`'s module layout, `__init__.py` exports, and `IntoExpr` typing conventions exactly.
+6. **Python side:** Register as `decode(expr, precision=5)` in the plugin's Python module, matching `polars-country`'s module layout, `__init__.py` exports, and `IntoExpr` typing conventions exactly.
 
 7. **Polars best practices — Rust:**
    - Use `StringChunked` / `BinaryChunked` iterators with `apply_nonnull_values_generic` or `try_apply` rather than manual loops where applicable
@@ -38,7 +38,7 @@ Before writing any code, study the repository at **https://github.com/bzimmer/po
 9. **Polars best practices — Python:**
    - Use `register_plugin_function` (not deprecated `register_plugin`) with explicit `is_elementwise=True`
    - Type-annotate the public function with `IntoExprColumn` and `-> pl.Expr`
-   - Re-export via `__init__.py` so `import polars_polyline; polars_polyline.decode_polyline(...)` works
+   - Re-export via `__init__.py` so `import polars_polyline; polars_polyline.decode(...)` works
    - Pin `polars` version in `pyproject.toml` to match the Rust side
 
 10. **Tests:** Add pytest tests that cover:
@@ -49,7 +49,7 @@ Before writing any code, study the repository at **https://github.com/bzimmer/po
 
     - **Invalid string:** A non-decodable string (e.g. `"!!INVALID!!"`) produces null output, not an exception.
 
-    - **Long real-world polyline:** Fetch the GPX track for the **Strava segment "Col de la Forclaz"** (or any publicly available cycling climb GPX with ≥ 100 trackpoints), encode it to a precision-5 polyline using the `polyline` Python package, store the encoded string as a fixture in `tests/fixtures/forclaz.txt`, decode it with `decode_polyline`, and assert:
+    - **Long real-world polyline:** Fetch the GPX track for the **Strava segment "Col de la Forclaz"** (or any publicly available cycling climb GPX with ≥ 100 trackpoints), encode it to a precision-5 polyline using the `polyline` Python package, store the encoded string as a fixture in `tests/fixtures/forclaz.txt`, decode it with `decode`, and assert:
       - The number of decoded points matches the number of input trackpoints (within any simplification tolerance applied during encoding)
       - The first and last decoded `(lng, lat)` match the first and last trackpoints within `1e-4`
       - All decoded `lat` values fall within `[45.0, 47.0]` and all `lng` values within `[6.0, 8.0]` (Swiss Alps bounding box sanity check)

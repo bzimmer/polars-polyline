@@ -6,7 +6,7 @@ def test_canonical_polyline():
     """Test canonical 3-point round-trip."""
     encoded = "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
     df = pl.DataFrame({"encoded": [encoded]})
-    result = df.select(pp.decode_polyline("encoded")).to_series()
+    result = df.select(pp.decode("encoded")).to_series()
 
     assert result[0] is not None
     coords = result[0]
@@ -26,7 +26,7 @@ def test_canonical_polyline():
 def test_null_input():
     """Test that null input produces null output."""
     df = pl.DataFrame({"encoded": [None]})
-    result = df.select(pp.decode_polyline("encoded")).to_series()
+    result = df.select(pp.decode("encoded")).to_series()
 
     assert result[0] is None
 
@@ -34,7 +34,7 @@ def test_null_input():
 def test_invalid_string():
     """Test that invalid string produces null output."""
     df = pl.DataFrame({"encoded": ["!!INVALID!!"]})
-    result = df.select(pp.decode_polyline("encoded")).to_series()
+    result = df.select(pp.decode("encoded")).to_series()
 
     assert result[0] is None
 
@@ -45,7 +45,7 @@ def test_mixed_series():
     df = pl.DataFrame(
         {"encoded": [valid_polyline, None, "!!INVALID!!", valid_polyline]}
     )
-    result = df.select(pp.decode_polyline("encoded")).to_series()
+    result = df.select(pp.decode("encoded")).to_series()
 
     # First should be valid
     assert result[0] is not None
@@ -66,7 +66,7 @@ def test_precision_5():
     """Test that precision 5 works correctly."""
     encoded = "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
     df = pl.DataFrame({"encoded": [encoded]})
-    result = df.select(pp.decode_polyline("encoded", precision=5)).to_series()
+    result = df.select(pp.decode("encoded", precision=5)).to_series()
 
     assert result[0] is not None
     assert len(result[0]) == 3
@@ -78,7 +78,7 @@ def test_precision_6():
     # This is a simple test string; we just verify it doesn't error
     encoded = "z~vFvyys|U"
     df = pl.DataFrame({"encoded": [encoded]})
-    result = df.select(pp.decode_polyline("encoded", precision=6)).to_series()
+    result = df.select(pp.decode("encoded", precision=6)).to_series()
 
     # Should either decode successfully or return null (if invalid)
     # The important thing is it doesn't raise an exception
@@ -89,7 +89,7 @@ def test_output_structure():
     """Test that output has correct structure: {lng, lat} fields, longitude first."""
     encoded = "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
     df = pl.DataFrame({"encoded": [encoded]})
-    result = df.select(pp.decode_polyline("encoded")).to_series()
+    result = df.select(pp.decode("encoded")).to_series()
 
     coords = result[0]
     assert len(coords) > 0
@@ -109,7 +109,7 @@ def test_output_structure():
 def test_empty_polyline_returns_null():
     """Test that empty polyline string returns null."""
     df = pl.DataFrame({"encoded": [""]})
-    result = df.select(pp.decode_polyline("encoded")).to_series()
+    result = df.select(pp.decode("encoded")).to_series()
 
     assert result[0] is None
 
@@ -119,7 +119,7 @@ def test_multiple_rows():
     encoded1 = "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
     encoded2 = "u{~vFvyys|U"
     df = pl.DataFrame({"encoded": [encoded1, encoded2]})
-    result = df.select(pp.decode_polyline("encoded")).to_series()
+    result = df.select(pp.decode("encoded")).to_series()
 
     # First should decode successfully
     assert result[0] is not None

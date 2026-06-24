@@ -10,7 +10,7 @@ A Polars expression plugin that decodes polyline-encoded strings into coordinate
 
 Output follows the `polyline` crate's `geo_types::Coord { x: lng, y: lat }` convention: **longitude first, latitude second**.
 
-- Rust: `decode_polyline_coords` returns `Vec<(f64, f64)>` where `.0 = lng`, `.1 = lat`
+- Rust: `decode` returns `Vec<(f64, f64)>` where `.0 = lng`, `.1 = lat`
 - Arrow struct field order: `{ lng: Float64, lat: Float64 }`
 - Polars dtype: `List(Struct { lng: Float64, lat: Float64 })`
 
@@ -22,7 +22,7 @@ This matches GeoJSON `[longitude, latitude]` ordering and avoids surprising cons
 
 ### `output_type_func` instead of `output_type`
 
-`#[polars_expr(output_type = ...)]` only accepts a simple ident like `Float64`. For `List(Struct(...))` we must use `output_type_func = output_type_decode_polyline` pointing to a function returning `PolarsResult<Field>`.
+`#[polars_expr(output_type = ...)]` only accepts a simple ident like `Float64`. For `List(Struct(...))` we must use `output_type_func = output_type_decode` pointing to a function returning `PolarsResult<Field>`.
 
 ### Arrow construction path
 
@@ -75,5 +75,5 @@ version = "0.54"
 ## What was not implemented
 
 - **Forclaz real-world fixture test** (plan item 10.iv): no external fixture file was created.
-- **`IntoExprColumn` type annotation** on `decode_polyline`: the Python function accepts `str | pl.Expr | pl.Series` with manual dispatch instead. Changing to `IntoExprColumn` would require importing from `polars.type_aliases` and would break the `Series` path.
+- **`IntoExprColumn` type annotation** on `decode`: the Python function accepts `str | pl.Expr | pl.Series` with manual dispatch instead. Changing to `IntoExprColumn` would require importing from `polars.type_aliases` and would break the `Series` path.
 - **Precision-6 assertion** (plan item 10.v): the test verifies no exception is raised but does not assert exact coordinate values, because no known-good precision-6 fixture was available.

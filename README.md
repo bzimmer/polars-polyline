@@ -32,7 +32,7 @@ df = pl.DataFrame({
 })
 
 result = df.with_columns(
-    coords=pp.decode_polyline("encoded")
+    coords=pp.decode("encoded")
 )
 
 print(result)
@@ -57,7 +57,7 @@ The Google polyline algorithm uses a precision parameter. The default is 5 (stan
 ```python
 # Decode precision-6 encoded polyline
 result = df.with_columns(
-    coords=pp.decode_polyline("encoded", precision=6)
+    coords=pp.decode("encoded", precision=6)
 )
 ```
 
@@ -75,7 +75,7 @@ df = pl.DataFrame({
 })
 
 result = df.with_columns(
-    coords=pp.decode_polyline("encoded")
+    coords=pp.decode("encoded")
 )
 ```
 
@@ -85,7 +85,7 @@ Decoded coordinates are returned as `List(Struct { lng: Float64, lat: Float64 })
 
 ```python
 result = df.with_columns(
-    coords=pp.decode_polyline("encoded")
+    coords=pp.decode("encoded")
 ).with_columns(
     num_points=pl.col("coords").list.len(),
     first_lng=pl.col("coords").list.first()["lng"],
